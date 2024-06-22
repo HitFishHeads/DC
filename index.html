@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>D Currency</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <style>
+        .centered-div {
+            width: 500px; /* 固定宽度 */
+            margin: 0 auto; /* 水平居中 */
+            padding: 30px;
+            border: 2px solid black;
+            background-color: lightblue;
+            text-align: left; /* 使内容水平居中 */
+        }
+        .centered-div1 {
+            width: 500px; /* 固定宽度 */
+            margin: 0 auto; /* 水平居中 */
+            padding: 30px;
+            border: 2px solid black;
+            background-color: rgb(201, 248, 198);
+            text-align: center; /* 使内容水平居中 */
+        }
+        .centered-div2 {
+            width: 400px; /* 固定宽度 */
+            margin: 0 auto; /* 水平居中 */
+            padding: 0px;
+            border: 2px solid rgb(135, 134, 134);
+            background-color: rgb(208, 238, 253);
+            text-align: left; /* 使内容水平居中 */
+        }
+    </style>
+</head>
+<body>
+    <div class="centered-div1">
+    <h1>D Currency交互页面</h1>
+    <h3>去中心化货币体系，货币公平产生于每个个人</h3>
+    </div>
+    <div   class="centered-div">
+        <div class="centered-div2">
+        <button id="connectButton">连接钱包</button>
+        
+        <p id="account"></p>
+        </div>
+        <div class="centered-div2">余额：<a id="balance">?</a>&nbsp;DC</div><p></p>
+        <div class="centered-div2">身份是否认证：<a id="isverified">?</a></div><p></p>
+        
+        <div class="header" id="URL">
+            <label for="text">请填写证明自己身份的URL:</label>
+            <input type="text" id="url" name="text">
+            <button id="apply">申请身份认证(花费5000 DC)</button><p></p>
+        </div>
+        
+        <div class="header1" id="CLAIM">
+            <label for="text" id="lkt">每日空投领取——></label>
+            <button id="claim">Claim</button>
+            <p id="status"></p>
+        </div>
+        
+        <div class="main1">投票权：<a id="isvoter">?</a>&nbsp;&nbsp;
+            <button id="bevoter">获取投票权（花费3000 DC）</button><p></p>
+        </div>
+        
+        <div class="main-content">
+            待认证人数：<a id="applss">?</a>&nbsp;&nbsp;
+            
+        </div>
+        
+        <div class="main-content2">
+            待认证人钱包：<a id="appladd">?</a>
+        </div>
+        
+        <div class="main-content2">
+            待认证人身份证明URL：<a id="applurl" href="#" target="_blank">?</a>
+        </div>
+        <div class="main-content2">
+            待认证人获票情况：<p></p>
+            同意票数：&nbsp;<a id="agr" >?</a>&nbsp;&nbsp;|&nbsp;反对票数：&nbsp;<a id="opp" >?</a><p></p>
+        </div>
+        
+        <div class="main-content3">
+            请认真查看URL是否为申请人本人真实加入DC网络！（投票将花费 100 DC, 投票获胜将能得到 200 DC,<p>
+
+            </p> 投票判断错误，将会损失花费的 100 DC,申请人总得票达到100票，根据投票结果判定是否通过身份认证，少数服从多数！）
+        </div>
+        <p></p>
+        <button id="agree">我认可该申请</button>&nbsp;&nbsp;
+        <button id="opposite">我不认可该申请</button>
+        <p id="vote_st"></p>
+        <button id="getrewards" >获取投票奖励</button>
+    </div>
+
+    <script>
+        let contract;
+        let gasPrice = '100000000'; 
+        // Wait for the document to fully load
+        window.addEventListener('load', async () => {
+            // Check if MetaMask is installed
+            if (typeof window.ethereum !== 'undefined') {
+                console.log('MetaMask is installed!');
+                window.web3 = new Web3(window.ethereum);
+                try {
+                    // Request account access if needed
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                } catch (error) {
+                    console.error('User denied account access', error);
+                }
+            } else {
+                alert('Please install MetaMask!');
+                // Use custom RPC URL if MetaMask is not installed
+                const arbitrumUrl = 'https://arb1.arbitrum.io/rpc';
+                window.web3 = new Web3(new Web3.providers.HttpProvider(arbitrumUrl));
+                console.log('使用自定义的 RPC URL 成功连接到 Arbitrum 网络');
+            }
+            
+            window.web3.eth.net.isListening()
+                .then(() => console.log('成功连接到 Arbitrum 网络'))
+                .catch(e => console.log('连接失败', e));
+
+            // Contract ABI and Address (replace with your own)
+            // [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"agree","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"_URL","type":"string"}],"name":"application","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"application_URL","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"bevoter","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"claim","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"pure","type":"function"},{"inputs":[],"name":"dropwhitelist","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"index","type":"uint256"}],"name":"get_address_from_applylist","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getrewards","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isappling","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"lastclaimtime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"lastdectime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"lastverifiedtime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"lastvotetime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"opposition","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"refreshapplicants","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"refreshbalance","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transfer","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"verified","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_Address","type":"address"},{"internalType":"bool","name":"approve","type":"bool"}],"name":"vote","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"voter","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"voteto","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"voting","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view"},{"inputs":[],"name":"whitelist","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view"},{"inputs":[{"internalType":"address","name":"_Address","type":"address"},{"internalType":"bool","name":"approve","type":"bool"}],"name":"whitevote","outputs":[],"stateMutability":"nonpayable"}];
+            const abi =[{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"agree","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"_URL","type":"string"}],"name":"application","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"application_URL","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"bevoter","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"claim","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"pure","type":"function"},{"inputs":[],"name":"dropwhitelist","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"index","type":"uint256"}],"name":"get_address_from_applylist","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getrewards","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isappling","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"lastclaimtime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"lastdectime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"lastverifiedtime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"lastvotetime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"opposition","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"refreshapplicants","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"refreshbalance","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transfer","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"verified","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_Address","type":"address"},{"internalType":"bool","name":"approve","type":"bool"}],"name":"vote","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"voter","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"voteto","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"voting","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"whitelist","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_Address","type":"address"},{"internalType":"bool","name":"approve","type":"bool"}],"name":"whitevote","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+            const contractAddress = '0xaA092034A4c0c7E2B043a7AdA79D4aeaA48fE7d1';
+
+            // Create contract instance
+             contract = new window.web3.eth.Contract(abi, contractAddress);
+
+            // Button to connect wallet
+            document.getElementById('connectButton').onclick = async () => {
+                try {
+                    // Request account access if needed
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    alert('Wallet connected');
+                    const accounts = await web3.eth.getAccounts();
+                    document.getElementById('account').innerText = `钱包已连接: ${accounts[0]}`;
+                    const verify = await contract.methods.verified(accounts[0]).call();
+                    const is_voter = await contract.methods.voter(accounts[0]).call();
+                    const balance = await contract.methods.balanceOf(accounts[0]).call();
+                    const lastclaimtime = await contract.methods.lastclaimtime(accounts[0]).call();
+                    const applss = await contract.methods.refreshapplicants().call();
+                    const applying = await contract.methods.isappling(accounts[0]).call();
+                    const lastvtime = await contract.methods.lastvotetime(accounts[0]).call();
+                    const is_voting = await contract.methods.voting(accounts[0]).call();
+                    const vote_to = await contract.methods.voteto(accounts[0]).call();
+                    const vote_verify = await contract.methods.verified(vote_to).call();
+
+                    document.getElementById('getrewards').style.visibility = 'hidden';
+
+                    if(is_voting)
+                    {
+                         if(vote_verify)
+                         {  
+                            const agre1= await contract.methods.agree(vote_to).call();
+                            const opps1= await contract.methods.opposition(vote_to).call();
+                            if(agre1+opps1>=100)
+                            document.getElementById('getrewards').style.visibility = 'visibile';
+                         }
+                    }
+                    
+                    if(is_voting)
+                    {
+                        document.getElementById('agree').style.visibility = 'hidden';
+                        document.getElementById('opposite').style.visibility = 'hidden';
+                        
+                    }
+                    if((Date.now() / 1000) - Number(lastvtime) < 3600 * 24)
+                    {
+                        document.getElementById('agree').style.visibility = 'hidden';
+                        document.getElementById('opposite').style.visibility = 'hidden';
+                        document.getElementById('vote_st').innerText = '投票间隔时间不足一天，暂时无法投票';
+                    }
+                    if(applss > 0) {
+                        const appladd= await contract.methods.get_address_from_applylist(0).call();
+                        const applurl= await contract.methods.application_URL(appladd).call();
+                        const agre= await contract.methods.agree(appladd).call();
+                        const opps= await contract.methods.opposition(appladd).call();
+                        document.getElementById('agr').innerText = agre;
+                        document.getElementById('opp').innerText = opps;
+                        document.getElementById('appladd').innerText = appladd;
+                        document.getElementById('applurl').innerText = applurl;
+                        document.getElementById('applurl').href = applurl;
+
+                    } else {
+                        document.getElementById('agree').style.visibility = 'hidden';
+                        document.getElementById('opposite').style.visibility = 'hidden';
+                    }
+                    
+                    document.getElementById('applss').innerText = applss;
+                    document.getElementById('balance').innerText = balance;
+                    document.getElementById('isverified').innerText = verify;
+                    document.getElementById('isvoter').innerText = is_voter;
+
+                    document.getElementById('connectButton').innerText = '刷新';
+                    document.getElementById('URL').style.visibility = 'hidden';
+
+                    if(is_voter) {
+                        document.getElementById('bevoter').style.visibility = 'hidden';
+                    }else
+                    {
+                        document.getElementById('agree').style.visibility = 'hidden';
+                        document.getElementById('opposite').style.visibility = 'hidden';
+                        if(verify)
+                        {
+                            document.getElementById('bevoter').style.visibility = 'visibile';
+                        }
+                    }
+
+                    if(!verify) {
+                        document.getElementById('lkt').innerText = '完成身份认证后可每日领取1000 DC';
+                        document.getElementById('URL').style.visibility = 'visible';
+                        document.getElementById('claim').style.visibility = 'hidden';
+                        document.getElementById('bevoter').style.visibility = 'hidden';
+
+                        if(applying) {
+                            document.getElementById('URL').style.visibility = 'hidden';
+                            document.getElementById('status').innerText = '您正在申请身份认证中，请耐心等待投票结束';
+                            document.getElementById('status').style.color = 'red';
+                        }
+                    } else {
+                        if((Date.now() / 1000) - Number(lastclaimtime) < 3600 * 24) {
+                            document.getElementById('claim').style.visibility = 'hidden';
+                            document.getElementById('status').innerText = '一天只能领取一次空投，距离上次领空投不足24小时';
+                        }
+                    }
+                } catch (error) {
+                    console.error('User denied account access', error);
+                }
+            };
+        });
+
+        // Set value function
+        document.getElementById('apply').onclick = async function() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // 获取用户账户
+                    const accounts = await web3.eth.getAccounts();
+                    const account = accounts[0];
+                    const turl = document.getElementById('url').value;
+                    // 调用合约方法
+                    await contract.methods.application(turl).send({ from: account ,gasPrice});
+                    document.getElementById('status').innerText = '身份认证申请已经提交。';
+                } catch (error) {
+                    console.error('Error executing transaction', error);
+                    document.getElementById('status').innerText = '身份认证申请提交失败！';
+                }
+            } else {
+                alert('Please install MetaMask!');
+            }
+        };
+        //申请加入投票者
+        document.getElementById('bevoter').onclick = async function() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // 获取用户账户
+                    const accounts = await web3.eth.getAccounts();
+                    const account = accounts[0];
+                    
+                    // 调用合约方法
+                    await contract.methods.bevoter().send({ from: account ,gasPrice});
+                    document.getElementById('status').innerText = '你获得了投票资格';
+                    document.getElementById('status').style.color = 'red';
+                    document.getElementById('bevoter').style.visibility = 'hidden';
+
+                } catch (error) {
+                    console.error('Error executing transaction', error);
+                    document.getElementById('status').innerText = '获取投票资格失败，请确保DC和gas费足够！';
+                    document.getElementById('status').style.color = 'red';
+                }
+            } else {
+                alert('Please install MetaMask!');
+            }
+        };
+
+        //claim功能
+        document.getElementById('claim').onclick = async function() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // 获取用户账户
+                    const accounts = await web3.eth.getAccounts();
+                    const account = accounts[0];
+                    // 调用合约方法
+                    await contract.methods.claim().send({ from: account ,gasPrice});
+                    document.getElementById('status').innerText = 'claim 成功';
+                    document.getElementById('status').style.color = 'red';
+                } catch (error) {
+                    console.error('Error executing transaction', error);
+                    document.getElementById('status').innerText = 'claim 失败';
+                    document.getElementById('status').style.color = 'red';
+                }
+            } else {
+                alert('Please install MetaMask!');
+            }
+        };
+        //投票
+        document.getElementById('agree').onclick = async function() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // 获取用户账户
+                    const accounts = await web3.eth.getAccounts();
+                    const account = accounts[0];
+                    // 调用合约方法
+                    const addr=document.getElementById('appladd').innerText;
+                    await contract.methods.vote(addr,1).send({ from: account ,gasPrice});
+                    document.getElementById('vote_st').innerText = '同意投票提交成功！';
+                    document.getElementById('vote_st').style.color = 'red';
+                    document.getElementById('agree').style.visibility = 'hidden';
+                    document.getElementById('opposite').style.visibility = 'hidden';
+                } catch (error) {
+                    console.error('Error executing transaction', error);
+                    document.getElementById('vote_st').innerText = '投票失败！';
+                    document.getElementById('vote_st').style.color = 'red';
+                }
+            } else {
+                alert('Please install MetaMask!');
+            }
+        };
+
+        document.getElementById('opposite').onclick = async function() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // 获取用户账户
+                    const accounts = await web3.eth.getAccounts();
+                    const account = accounts[0];
+                    // 调用合约方法
+                    const addr=document.getElementById('appladd').innerText;
+                    await contract.methods.vote(addr,0).send({ from: account ,gasPrice});
+                    document.getElementById('vote_st').innerText = '反对投票提交成功！';
+                    document.getElementById('opposite').style.visibility = 'hidden';
+                    document.getElementById('agree').style.visibility = 'hidden';
+                    document.getElementById('vote_st').style.color = 'red';
+
+                } catch (error) {
+                    console.error('Error executing transaction', error);
+                    document.getElementById('vote_st').innerText = '投票失败';
+                    document.getElementById('vote_st').style.color = 'red';
+                }
+            } else {
+                alert('Please install MetaMask!');
+            }
+        };
+        // 刷新申请认证人数
+        document.getElementById('refapplicants').onclick = async function() {
+            const result = await contract.methods.refreshapplicants().call();
+            document.getElementById('applss').innerText = result;
+            if(result > 0) {
+                // Do nothing, already handled above
+            } else {
+                document.getElementById('agree').style.visibility = 'hidden';
+                document.getElementById('opposition').style.visibility = 'hidden';
+            }
+        };
+    </script>
+</body>
+</html>
