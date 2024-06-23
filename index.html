@@ -337,17 +337,7 @@
                 alert('Please install MetaMask!');
             }
         };
-        // 刷新申请认证人数
-        document.getElementById('refapplicants').onclick = async function() {
-            const result = await contract.methods.refreshapplicants().call();
-            document.getElementById('applss').innerText = result;
-            if(result > 0) {
-                // Do nothing, already handled above
-            } else {
-                document.getElementById('agree').style.visibility = 'hidden';
-                document.getElementById('opposition').style.visibility = 'hidden';
-            }
-        };
+       
     </script>
 </body>
 </html>
